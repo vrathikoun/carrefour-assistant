@@ -4,7 +4,7 @@
   "manifest_version": 3,
   "action": {
     "default_title": "Carrefour Assistant",
-    "default_popup": "popup.html"
+    "default_popup": "src/popup.html"
   },
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
@@ -12,7 +12,7 @@
     "http://localhost:8000/*"
   ],
   "background": {
-    "service_worker": "service_worker.js",
+    "service_worker": "src/background.js",
     "type": "module"
   },
   "icons": {
@@ -23,7 +23,7 @@
   "content_scripts": [
     {
       "matches": ["https://www.carrefour.fr/*"],
-      "js": ["content.js"],
+      "js": ["src/content.js"],
       "run_at": "document_idle"
     }
   ]
