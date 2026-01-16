@@ -1,1 +1,1 @@
-# Init tools package
+"""Package principal de l'application backend."""

@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
 from langfuse.callback import CallbackHandler
 from app.schemas import ChatRequest, ChatResponse
-from app.agent.graph import app_graph
+from app.agent import app_graph
 from app.config import get_settings
 
 app = FastAPI(title="Carrefour AI Assistant Backend")

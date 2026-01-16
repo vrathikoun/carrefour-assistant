@@ -1,23 +1,73 @@
-# Backend
+# Carrefour AI Assistant - Backend API
 
-This folder contains the backend services for the Carrefour Assistant application. It is built using Python and Flask, and interacts with various APIs to provide information about products, recipes, and store locations.
+Ce dossier contient le "cerveau" de l'assistant, exposé via une API **FastAPI**. Il utilise **LangGraph** pour orchestrer une logique agentique capable d'analyser le contexte de navigation en temps réel.
 
-## Architecture
+## Architecture Agentique (LangGraph)
 
-The backend is organized into several key components:
+L'agent ne suit pas un script linéaire simple. Il est modélisé sous forme de graphe d'états (`app/agent/graph.py`) qui gère intelligemment deux modes de fonctionnement :
 
-- **`app.py`**: This is the main entry point of the Flask application. It initializes the Flask app, registers blueprints, and sets up configurations.
-- **`config.py`**: This file handles the configuration settings for the application, such as API keys, database connections, and other environment-specific variables.
-- **`routes/`**: This directory contains the different API endpoints (routes) of the application, organized by functionality. Each file within this directory typically defines a blueprint and its associated routes.
-    - **`product_routes.py`**: Handles requests related to product information, such as searching for products, retrieving product details, and potentially managing product data.
-    - **`recipe_routes.py`**: Manages requests for recipe information, including searching for recipes, fetching recipe details, and potentially integrating with recipe APIs.
-    - **`store_routes.py`**: Deals with requests related to Carrefour store locations, opening hours, and other store-specific information.
-- **`services/`**: This directory contains the business logic and external API integrations. Each file here typically encapsulates the logic for interacting with a specific external service or performing a particular business operation.
-    - **`product_service.py`**: Contains the logic for interacting with product-related APIs (e.g., Carrefour product API, Open Food Facts).
-    - **`recipe_service.py`**: Implements the logic for fetching and processing recipe data from external recipe APIs.
-    - **`store_service.py`**: Handles the communication with store location APIs or internal store data sources.
-- **`utils/`**: This directory holds utility functions and helper classes that are used across different parts of the application.
-    - **`api_clients.py`**: Contains classes or functions for making HTTP requests to external APIs, potentially handling authentication and error handling.
-    - **`decorators.py`**: Provides custom decorators for common tasks like authentication, logging, or input validation.
-    - **`helpers.py`**: A general-purpose file for various helper functions that don't fit into other specific categories.
-- **`models/`**: (
+1.  **Mode Proactif (Smart Pre-prompts)** :
+    *   **Déclencheur** : L'utilisateur navigue sur une page (Home, Search, Product) sans envoyer de message.
+    *   **Action** : L'agent analyse le DOM (produits visibles, promos) et génère des suggestions de questions pertinentes (ex: "Quel est le prix au kilo ?").
+    *   **Sortie** : Liste de `suggestions`.
+
+2.  **Mode Réactif (Chatbot)** :
+    *   **Déclencheur** : L'utilisateur pose une question.
+    *   **Action** : L'agent utilise le contexte de la page et l'historique pour répondre.
+    *   **Sortie** : Une réponse textuelle (`final_response`).
+
+## 🛠 Stack Technique
+
+*   **Framework** : FastAPI (Python 3.9+)
+*   **LLM** : Google Vertex AI (Gemini 1.5 Pro)
+*   **Orchestration** : LangGraph & LangChain
+*   **Observabilité** : Langfuse (Tracing complet des requêtes et coûts)
+*   **Validation** : Pydantic
+
+## 📂 Structure du Dossier
+
+```text
+backend/
+├── app/
+│   ├── agent/
+│   │   ├── graph.py       # Définition du StateGraph (Noeuds & Logique conditionnelle)
+│   │   └── __init__.py
+│   ├── tools/             # Outils (ex: Recherche simulée)
+│   ├── config.py          # Gestion centralisée de la config (Env vars)
+│   ├── main.py            # Point d'entrée API & Middleware CORS
+│   └── schemas.py         # Modèles de données partagés (Frontend <-> Backend)
+├── requirements.txt       # Dépendances
+└── .env                   # Variables d'environnement (non versionné)
+```
+
+## 🚀 Installation & Démarrage
+
+### 1. Configuration
+Créez un fichier `.env` à la racine de `backend/` :
+
+```ini
+GOOGLE_APPLICATION_CREDENTIALS="path/to/your-gcp-key.json"
+GCP_PROJECT_ID="votre-projet-id"
+GCP_LOCATION="europe-west1"
+
+LANGFUSE_PUBLIC_KEY="pk-lf-..."
+LANGFUSE_SECRET_KEY="sk-lf-..."
+LANGFUSE_HOST="https://cloud.langfuse.com"
+```
+
+### 2. Installation des dépendances
+
+```bash
+python -m venv venv
+source venv/bin/activate  # ou venv\Scripts\activate sur Windows
+pip install -r requirements.txt
+```
+
+### 3. Lancer le serveur
+
+```bash
+uvicorn app.main:app --reload
+```
+
+L'API sera accessible sur `http://localhost:8000`.
+La documentation interactive (Swagger UI) est disponible sur `http://localhost:8000/docs`.
