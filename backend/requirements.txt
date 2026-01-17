@@ -1,8 +1,6 @@
-fastapi
-uvicorn
-pydantic
-pydantic-settings
-langchain
-langchain-google-vertexai
-langgraph
-langfuse
+fastapi==0.109.0
+uvicorn==0.27.0
+langchain==0.1.0
+langchain-google-vertexai==0.0.5
+langfuse==2.0.0
+python-dotenv==1.0.0
