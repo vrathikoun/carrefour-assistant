@@ -66,7 +66,7 @@ pip install -r requirements.txt
 ### 3. Lancer le serveur
 
 ```bash
-uvicorn app.main:app --reload
+python main.py
 ```
 
 L'API sera accessible sur `http://localhost:8000`.
