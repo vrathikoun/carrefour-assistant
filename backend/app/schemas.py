@@ -16,10 +16,17 @@ class PageContext(BaseModel):
     bodyText: Optional[str] = None
 
 class ChatRequest(BaseModel):
-    message: str
+    message: Optional[str] = None
     context: PageContext
     chat_history: Optional[List[Any]] = []
 
 class ChatResponse(BaseModel):
     response: str
+    suggestions: Optional[List[str]] = None
     actions: Optional[List[Any]] = None
+
+class SuggestionsRequest(BaseModel):
+    context: PageContext
+
+class SuggestionsResponse(BaseModel):
+    suggestions: List[str]

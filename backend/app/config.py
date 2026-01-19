@@ -4,8 +4,16 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # Google Cloud / Vertex AI
     GOOGLE_APPLICATION_CREDENTIALS: str
-    GCP_PROJECT_ID: str = "carrefour-genai-project"
+    GCP_PROJECT_ID: str = "viphone-tuto"
     GCP_LOCATION: str = "europe-west1"
+
+    # LLM
+    LLM_MODEL: str = "gemini-pro"
+    LLM_MAX_OUTPUT_TOKENS: int = 1024
+    LLM_temperature: float = 0.2
+    LLM_convert_system_message_to_human: bool = True
+    LLM_verbose: bool = True
+    LLM_callbacks: list = []
     
     # Langfuse (Observability)
     LANGFUSE_PUBLIC_KEY: str

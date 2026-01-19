@@ -5,6 +5,8 @@ from langchain_google_vertexai import ChatVertexAI
 from langgraph.graph import StateGraph, END
 from app.config import get_settings
 from app.schemas import PageContext
+from app.llm import get_llm
+
 
 settings = get_settings()
 
@@ -16,14 +18,7 @@ class AgentState(TypedDict):
     final_response: str
 
 # --- 2. Initialisation du LLM ---
-llm = ChatVertexAI(
-    model_name="gemini-1.5-pro",
-    temperature=0.2,
-    max_output_tokens=1024,
-    project=settings.GCP_PROJECT_ID,
-    location=settings.GCP_LOCATION,
-    verbose=True
-)
+llm = get_llm()
 
 # --- 3. Nodes (Les étapes du raisonnement) ---
 
@@ -39,14 +34,18 @@ def analyze_context_node(state: AgentState):
     Promos: {context.promos}
     
     Génère 3 questions courtes et pertinentes que l'utilisateur pourrait poser.
-    Sépare les par des pipes '|'.
+    Réponds STRICTEMENT au format JSON:
+    {{"suggestions": ["question1", "question2", "question3"]}}
     Exemple: Quel est le prix au kg ? | C'est du bio ? | Idée recette ?
     """
     
     msg = HumanMessage(content=prompt)
     response = llm.invoke([msg])
-    suggestions = [s.strip() for s in response.content.split("|") if s.strip()]
-    
+    try:
+        data = json.loads(response.content)
+        suggestions = data.get("suggestions", [])
+    except Exception:
+        suggestions = [s.strip() for s in response.content.split("|") if s.strip()]
     return {"suggestions": suggestions}
 
 def chat_node(state: AgentState):
