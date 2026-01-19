@@ -1,86 +1,83 @@
 from typing import TypedDict, List, Annotated
 import operator
+import json
+
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
-from langchain_google_vertexai import ChatVertexAI
 from langgraph.graph import StateGraph, END
-from app.config import get_settings
+
 from app.schemas import PageContext
 from app.llm import get_llm
+from app.extractors import compact_context
+from app.suggestions import suggestions_rule_based
 
-
-settings = get_settings()
-
-# --- 1. Définition de l'État du Graphe ---
+# --- 1) State ---
 class AgentState(TypedDict):
     messages: Annotated[List[BaseMessage], operator.add]
     context: PageContext
     suggestions: List[str]
     final_response: str
 
-# --- 2. Initialisation du LLM ---
+# --- 2) LLM ---
 llm = get_llm()
 
-# --- 3. Nodes (Les étapes du raisonnement) ---
-
+# --- 3) Nodes ---
 def analyze_context_node(state: AgentState):
-    """Analyse la page pour générer des Smart Pre-prompts (Proactive)."""
-    context = state["context"]
-    
-    prompt = f"""Tu es l'assistant intelligent Carrefour.
-    Analyse le contexte de la page suivante :
-    Type: {context.page_type}
-    Titre: {context.title}
-    Produits: {len(context.products) if context.products else 0} visible(s)
-    Promos: {context.promos}
-    
-    Génère 3 questions courtes et pertinentes que l'utilisateur pourrait poser.
-    Réponds STRICTEMENT au format JSON:
-    {{"suggestions": ["question1", "question2", "question3"]}}
-    Exemple: Quel est le prix au kg ? | C'est du bio ? | Idée recette ?
     """
-    
-    msg = HumanMessage(content=prompt)
-    response = llm.invoke([msg])
+    Optional LLM suggestions.
+    NOTE: In case of parsing errors, fallback to rule-based suggestions (fast & robust).
+    """
+    context = state["context"]
+
+    system = SystemMessage(
+        content="You MUST output STRICT valid JSON only. No extra text."
+    )
+
+    user_prompt = f"""
+Generate 3 short, helpful suggested user questions for a Carrefour shopping assistant.
+Return STRICT JSON:
+{{"suggestions": ["...", "...", "..."]}}
+
+PAGE CONTEXT (compact):
+{compact_context(context)}
+""".strip()
+
+    response = llm.invoke([system, HumanMessage(content=user_prompt)])
+
     try:
         data = json.loads(response.content)
         suggestions = data.get("suggestions", [])
+        if not isinstance(suggestions, list) or not all(isinstance(s, str) for s in suggestions):
+            raise ValueError("Invalid suggestions format")
+        # small cleanup
+        suggestions = [s.strip() for s in suggestions if s.strip()][:3]
+        if not suggestions:
+            raise ValueError("Empty suggestions")
+        return {"suggestions": suggestions}
     except Exception:
-        suggestions = [s.strip() for s in response.content.split("|") if s.strip()]
-    return {"suggestions": suggestions}
+        # robust fallback
+        return {"suggestions": suggestions_rule_based(context)}
+
 
 def chat_node(state: AgentState):
-    """Répond à la question de l'utilisateur en utilisant le contexte."""
+    """Answer user question using compact in-page context."""
     context = state["context"]
     messages = state["messages"]
-    
-    # Injection du contexte dans le prompt système
-    system_content = f"""Tu es l'assistant shopping Carrefour.
-    CONTEXTE PAGE:
-    Titre: {context.title}
-    URL: {context.url}
-    Type: {context.page_type}
-    """
-    
-    if context.product:
-        system_content += f"\nPRODUIT ACTUEL: {context.product}"
-    if context.products:
-        system_content += f"\nLISTE PRODUITS: {context.products}"
-    if context.promos:
-        system_content += f"\nPROMOS: {context.promos}"
-    if context.bodyText:
-        system_content += f"\nCONTENU TEXTE: {context.bodyText[:1000]}..."
 
-    system_content += "\nRéponds de façon utile, concise et commerciale."
+    system_content = (
+        "Tu es l'assistant shopping Carrefour.\n"
+        "Règle: utilise UNIQUEMENT le contexte fourni. "
+        "Si l'information n'est pas dans le contexte, dis-le clairement.\n\n"
+        f"{compact_context(context)}\n"
+    )
 
     messages_with_system = [SystemMessage(content=system_content)] + messages
-    
     response = llm.invoke(messages_with_system)
+
     return {"final_response": response.content}
 
-# --- 4. Construction du Graphe ---
 
+# --- 4) Routing ---
 workflow = StateGraph(AgentState)
-
 workflow.add_node("proactive_analysis", analyze_context_node)
 workflow.add_node("chatbot", chat_node)
 
@@ -93,8 +90,8 @@ workflow.set_conditional_entry_point(
     route_request,
     {
         "chatbot": "chatbot",
-        "proactive_analysis": "proactive_analysis"
-    }
+        "proactive_analysis": "proactive_analysis",
+    },
 )
 
 workflow.add_edge("proactive_analysis", END)

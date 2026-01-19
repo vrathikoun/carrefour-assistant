@@ -34,8 +34,27 @@ async def root():
 
 @app.post("/suggestions", response_model=SuggestionsResponse)
 async def suggestions_endpoint(request: SuggestionsRequest):
-    # Proactivité "in-context" rapide: rules-based
+    # Fast path: rules-based always available
     suggestions = suggestions_rule_based(request.context)
+
+    # Optional: ask LLM to generate context-aware suggestions (via LangGraph node)
+    if settings.ENABLE_LLM_SUGGESTIONS:
+        try:
+            result = await app_graph.ainvoke(
+                {
+                    "context": request.context,
+                    "messages": [],
+                    "suggestions": [],
+                    "final_response": "",
+                }
+            )
+            llm_suggestions = result.get("suggestions", [])
+            if llm_suggestions:
+                suggestions = llm_suggestions
+        except Exception:
+            # keep rule-based suggestions
+            pass
+
     return SuggestionsResponse(suggestions=suggestions)
 
 

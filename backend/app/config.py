@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.2
     LLM_CONVERT_SYSTEM_MESSAGE_TO_HUMAN: bool = True
     LLM_VERBOSE: bool = False
+    ENABLE_LLM_SUGGESTIONS: bool = False
+
 
     # --- Langfuse (Observability) ---
     LANGFUSE_PUBLIC_KEY: str
