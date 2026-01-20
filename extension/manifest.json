@@ -9,7 +9,7 @@
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [
     "https://www.carrefour.fr/*",
-    "http://localhost:8000/*"
+    "https://8000-viphone-vm1.cluster-t346zipbh5hmsxvtfeq3qnclfy.cloudworkstations.dev/*"
   ],
   "background": {
     "service_worker": "src/background.js",

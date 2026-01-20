@@ -1,7 +1,4 @@
-const API_URL = "http://localhost:8000/chat";
-
 document.addEventListener("DOMContentLoaded", async () => {
-  // 1. Récupérer le contexte stocké par background.js
   const data = await chrome.storage.local.get("latest_context");
   const context = data.latest_context;
 
@@ -10,56 +7,77 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // 2. Appel initial pour les "Smart Pre-prompts" (sans message utilisateur)
-  // L'agent va détecter qu'il n'y a pas de message et lancer l'analyse proactive
-  callAgent("", context);
+  // 1) Suggestions proactives (appel /suggestions)
+  requestSuggestions(context);
 
-  // 3. Gestion du bouton envoyer
-  document.getElementById("send-btn").addEventListener("click", () => {
+  // 2) Send message
+  document.getElementById("send-btn").addEventListener("click", async () => {
     const input = document.getElementById("user-input");
     const text = input.value.trim();
-    if (text) {
-      addMessage("user", text);
-      callAgent(text, context);
-      input.value = "";
-    }
+    if (!text) return;
+
+    addMessage("user", text);
+    input.value = "";
+    await callChat(text, context);
   });
 });
 
-async function callAgent(message, context) {
+async function requestSuggestions(context) {
   const suggestionsArea = document.getElementById("suggestions-area");
   suggestionsArea.innerHTML = "Chargement...";
 
-  try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, context })
-    });
-    const json = await response.json();
-
-    if (json.response) {
-      addMessage("bot", json.response);
+  chrome.runtime.sendMessage(
+    { type: "API_SUGGESTIONS", payload: { context } },
+    (resp) => {
+      if (!resp?.ok) {
+        suggestionsArea.innerHTML = "Erreur suggestions.";
+        return;
+      }
+      renderSuggestions(resp.data?.suggestions || [], context);
     }
+  );
+}
 
-    // Affichage des suggestions (Smart Pre-prompts)
-    suggestionsArea.innerHTML = "";
-    if (json.suggestions && json.suggestions.length > 0) {
-      json.suggestions.forEach(s => {
-        const btn = document.createElement("div");
-        btn.className = "suggestion";
-        btn.innerText = s;
-        btn.onclick = () => {
-            addMessage("user", s);
-            callAgent(s, context);
-        };
-        suggestionsArea.appendChild(btn);
-      });
+async function callChat(message, context) {
+  const suggestionsArea = document.getElementById("suggestions-area");
+  suggestionsArea.innerHTML = "Chargement...";
+
+  chrome.runtime.sendMessage(
+    { type: "API_CHAT", payload: { message, context } },
+    (resp) => {
+      if (!resp?.ok) {
+        addMessage("bot", "Erreur de connexion au backend.");
+        console.error(resp?.error);
+        suggestionsArea.innerHTML = "";
+        return;
+      }
+
+      const json = resp.data || {};
+      if (json.response) addMessage("bot", json.response);
+
+      // refresh suggestions if backend returns some
+      if (json.suggestions?.length) {
+        renderSuggestions(json.suggestions, context);
+      } else {
+        suggestionsArea.innerHTML = "";
+      }
     }
-  } catch (e) {
-    addMessage("bot", "Erreur de connexion au backend.");
-    console.error(e);
-  }
+  );
+}
+
+function renderSuggestions(suggestions, context) {
+  const suggestionsArea = document.getElementById("suggestions-area");
+  suggestionsArea.innerHTML = "";
+  suggestions.slice(0, 3).forEach((s) => {
+    const btn = document.createElement("div");
+    btn.className = "suggestion";
+    btn.innerText = s;
+    btn.onclick = async () => {
+      addMessage("user", s);
+      await callChat(s, context);
+    };
+    suggestionsArea.appendChild(btn);
+  });
 }
 
 function addMessage(role, text) {
