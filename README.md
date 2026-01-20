@@ -40,7 +40,7 @@ Configure the file `.env` :
 GOOGLE_APPLICATION_CREDENTIALS=path/to/key.json
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
-LANGFUSE_HOST=https://cloud.langfuse.com
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
 ```
 
 ## Developpement

@@ -1,7 +1,11 @@
+import os
 from langchain_google_genai import ChatGoogleGenerativeAI
 from app.config import get_settings
 
 settings = get_settings()
+
+if settings.GOOGLE_APPLICATION_CREDENTIALS:
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
 
 def get_llm(temperature: float | None = None) -> ChatGoogleGenerativeAI:
     return ChatGoogleGenerativeAI(

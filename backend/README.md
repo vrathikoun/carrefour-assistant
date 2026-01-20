@@ -52,7 +52,7 @@ GCP_LOCATION="europe-west1"
 
 LANGFUSE_PUBLIC_KEY="pk-lf-..."
 LANGFUSE_SECRET_KEY="sk-lf-..."
-LANGFUSE_HOST="https://cloud.langfuse.com"
+LANGFUSE_BASE_URL="https://cloud.langfuse.com"
 ```
 
 ### 2. Installation des dépendances

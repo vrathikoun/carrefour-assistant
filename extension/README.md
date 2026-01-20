@@ -23,4 +23,6 @@ The extension is structured into several key components:
         1.  Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
         2.  Click "Load Temporary Add-on..." and select any file inside this `extension/` folder (e.g., `manifest.json`).
 
-2.  **
+1.  **To test the API in local**
+    *   **bash:**
+        run `export GOOGLE_APPLICATION_CREDENTIALS=/home/user/.gcp/viphone-tuto-c904c6e91ccd.json`

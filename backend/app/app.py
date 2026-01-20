@@ -1,7 +1,9 @@
+import os
+from langfuse import Langfuse
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_core.messages import HumanMessage
-from langfuse.callback import CallbackHandler
+from langfuse.langchain import CallbackHandler
 
 from app.config import get_settings
 from app.schemas import (
@@ -14,6 +16,14 @@ from app.suggestions import suggestions_rule_based
 from app.agent.graph import app_graph
 
 settings = get_settings()
+
+langfuse_client = None
+os.environ["LANGFUSE_PUBLIC_KEY"] = settings.LANGFUSE_PUBLIC_KEY
+os.environ["LANGFUSE_SECRET_KEY"] = settings.LANGFUSE_SECRET_KEY
+os.environ["LANGFUSE_BASE_URL"] = settings.LANGFUSE_BASE_URL
+
+langfuse_client = Langfuse()
+
 
 app = FastAPI(title="Carrefour AI Assistant Backend")
 
@@ -60,11 +70,12 @@ async def suggestions_endpoint(request: SuggestionsRequest):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    langfuse_handler = CallbackHandler(
-        public_key=settings.LANGFUSE_PUBLIC_KEY,
-        secret_key=settings.LANGFUSE_SECRET_KEY,
-        host=settings.LANGFUSE_HOST,
-    )
+    # Langfuse tracing (safe: if it fails, we still answer)
+    callbacks = []
+    try:
+        callbacks = [CallbackHandler()]  # uses default Langfuse client initialized above
+    except Exception:
+        callbacks = []
 
     inputs = {
         "context": request.context,
@@ -74,7 +85,7 @@ async def chat_endpoint(request: ChatRequest):
     }
 
     try:
-        result = await app_graph.ainvoke(inputs, config={"callbacks": [langfuse_handler]})
+        result = await app_graph.ainvoke(inputs, config={"callbacks": callbacks})
         return ChatResponse(
             response=result.get("final_response", ""),
             suggestions=result.get("suggestions", []),
