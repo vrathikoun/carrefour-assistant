@@ -1,5 +1,7 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, TypedDict, Annotated
 from pydantic import BaseModel
+import operator
+import json
 
 class ProductItem(BaseModel):
     title: str
