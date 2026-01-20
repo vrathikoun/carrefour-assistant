@@ -7,7 +7,7 @@ from langgraph.graph import StateGraph, END
 
 from app.schemas import PageContext
 from app.llm import get_llm
-from app.extractors import compact_context
+from app.extractors import compact_context, extract_json_object
 from app.suggestions import suggestions_rule_based
 
 # --- 1) State ---
@@ -16,46 +16,57 @@ class AgentState(TypedDict):
     context: PageContext
     suggestions: List[str]
     final_response: str
+    _suggestions_source: str
 
 # --- 2) LLM ---
 llm = get_llm()
 
 # --- 3) Nodes ---
 def analyze_context_node(state: AgentState):
-    """
-    Optional LLM suggestions.
-    NOTE: In case of parsing errors, fallback to rule-based suggestions (fast & robust).
-    """
     context = state["context"]
 
-    system = SystemMessage(
-        content="You MUST output STRICT valid JSON only. No extra text."
-    )
-
+    system = SystemMessage(content="Return STRICT valid JSON only. No extra text.")
     user_prompt = f"""
-Generate 3 short, helpful suggested user questions for a Carrefour shopping assistant.
-Return STRICT JSON:
+You generate proactive suggestions for a Carrefour in-page assistant.
+
+Rules:
+- Use product names from the context whenever possible.
+- Avoid generic templates like "compare top 3" or "cheapest per kg" unless it truly matches the page.
+- Produce 3 suggestions with different intents:
+  1) Budget/value
+  2) Health/composition (or allergy/diet)
+  3) Usage/recipe or practical choice
+
+Return STRICT JSON only:
 {{"suggestions": ["...", "...", "..."]}}
 
-PAGE CONTEXT (compact):
+PAGE CONTEXT:
 {compact_context(context)}
 """.strip()
 
     response = llm.invoke([system, HumanMessage(content=user_prompt)])
 
     try:
-        data = json.loads(response.content)
+        data = extract_json_object(response.content)
         suggestions = data.get("suggestions", [])
         if not isinstance(suggestions, list) or not all(isinstance(s, str) for s in suggestions):
             raise ValueError("Invalid suggestions format")
-        # small cleanup
+
         suggestions = [s.strip() for s in suggestions if s.strip()][:3]
         if not suggestions:
             raise ValueError("Empty suggestions")
-        return {"suggestions": suggestions}
-    except Exception:
-        # robust fallback
-        return {"suggestions": suggestions_rule_based(context)}
+
+        # watermark debug (optional)
+        suggestions = [f"🤖 {s}" for s in suggestions]
+
+        return {"suggestions": suggestions, "_suggestions_source": "llm"}
+
+    except Exception as e:
+        import traceback
+        print("[suggestions] LLM failed -> fallback rules")
+        print("[suggestions] raw model output:", repr(response.content))
+        traceback.print_exc()
+        return {"suggestions": suggestions_rule_based(context), "_suggestions_source": "llm_fallback"}
 
 
 def chat_node(state: AgentState):

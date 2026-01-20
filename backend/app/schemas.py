@@ -32,3 +32,4 @@ class SuggestionsRequest(BaseModel):
 
 class SuggestionsResponse(BaseModel):
     suggestions: List[str]
+    source: str = "rules"

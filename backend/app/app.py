@@ -44,10 +44,6 @@ async def root():
 
 @app.post("/suggestions", response_model=SuggestionsResponse)
 async def suggestions_endpoint(request: SuggestionsRequest):
-    # Fast path: rules-based always available
-    suggestions = suggestions_rule_based(request.context)
-
-    # Optional: ask LLM to generate context-aware suggestions (via LangGraph node)
     if settings.ENABLE_LLM_SUGGESTIONS:
         try:
             result = await app_graph.ainvoke(
@@ -56,16 +52,18 @@ async def suggestions_endpoint(request: SuggestionsRequest):
                     "messages": [],
                     "suggestions": [],
                     "final_response": "",
-                }
+                    "_suggestions_source": "unknown",
+                },
+                config={"callbacks": [CallbackHandler()]},
             )
-            llm_suggestions = result.get("suggestions", [])
-            if llm_suggestions:
-                suggestions = llm_suggestions
-        except Exception:
-            # keep rule-based suggestions
-            pass
-
-    return SuggestionsResponse(suggestions=suggestions)
+            sugg = result.get("suggestions", []) or suggestions_rule_based(request.context)
+            src = result.get("_suggestions_source", "unknown")
+            return SuggestionsResponse(suggestions=sugg, source=src)
+        except Exception as e:
+            print("[suggestions] graph error -> rules fallback:", repr(e))
+            return SuggestionsResponse(suggestions=suggestions_rule_based(request.context), source="rules")
+    else:
+        return SuggestionsResponse(suggestions=suggestions_rule_based(request.context), source="rules")
 
 
 @app.post("/chat", response_model=ChatResponse)
