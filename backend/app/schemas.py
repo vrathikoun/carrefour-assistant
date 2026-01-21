@@ -7,6 +7,7 @@ class ProductItem(BaseModel):
     title: str
     price: str
     desc: Optional[str] = None
+    url: Optional[str] = None
 
 class PageContext(BaseModel):
     url: str
@@ -15,6 +16,7 @@ class PageContext(BaseModel):
     promos: Optional[List[str]] = None
     products: Optional[List[ProductItem]] = None
     product: Optional[ProductItem] = None
+    recommended_products: Optional[List[ProductItem]] = None  # NEW
     bodyText: Optional[str] = None
 
 class ChatRequest(BaseModel):
