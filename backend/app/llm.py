@@ -4,6 +4,7 @@ from app.config import get_settings
 
 settings = get_settings()
 
+# Comment the next following 2 lines for Cloud run deployment
 if settings.GOOGLE_APPLICATION_CREDENTIALS:
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = settings.GOOGLE_APPLICATION_CREDENTIALS
 
