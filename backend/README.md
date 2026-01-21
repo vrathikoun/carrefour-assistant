@@ -1,73 +1,83 @@
-# Carrefour AI Assistant - Backend API
+# Backend – AI Assistant API
 
-Ce dossier contient le "cerveau" de l'assistant, exposé via une API **FastAPI**. Il utilise **LangGraph** pour orchestrer une logique agentique capable d'analyser le contexte de navigation en temps réel.
+This folder contains the **FastAPI backend** responsible for:
+- receiving page context from the extension
+- generating proactive suggestions
+- answering user questions using an AI agent
+- enforcing strict context grounding
 
-## Architecture Agentique (LangGraph)
+---
 
-L'agent ne suit pas un script linéaire simple. Il est modélisé sous forme de graphe d'états (`app/agent/graph.py`) qui gère intelligemment deux modes de fonctionnement :
+## Core Design Principles
 
-1.  **Mode Proactif (Smart Pre-prompts)** :
-    *   **Déclencheur** : L'utilisateur navigue sur une page (Home, Search, Product) sans envoyer de message.
-    *   **Action** : L'agent analyse le DOM (produits visibles, promos) et génère des suggestions de questions pertinentes (ex: "Quel est le prix au kilo ?").
-    *   **Sortie** : Liste de `suggestions`.
+- **Stateless API** (Cloud Run friendly)
+- **Context-bounded reasoning** (anti-hallucination)
+- **Deterministic fallbacks**
+- **LLM observability**
 
-2.  **Mode Réactif (Chatbot)** :
-    *   **Déclencheur** : L'utilisateur pose une question.
-    *   **Action** : L'agent utilise le contexte de la page et l'historique pour répondre.
-    *   **Sortie** : Une réponse textuelle (`final_response`).
+---
 
-## 🛠 Stack Technique
+## 🗂 Folder Structure
 
-*   **Framework** : FastAPI (Python 3.9+)
-*   **LLM** : Google Vertex AI (Gemini 1.5 Pro)
-*   **Orchestration** : LangGraph & LangChain
-*   **Observabilité** : Langfuse (Tracing complet des requêtes et coûts)
-*   **Validation** : Pydantic
-
-## 📂 Structure du Dossier
-
-```text
 backend/
 ├── app/
-│   ├── agent/
-│   │   ├── graph.py       # Définition du StateGraph (Noeuds & Logique conditionnelle)
-│   │   └── __init__.py
-│   ├── tools/             # Outils (ex: Recherche simulée)
-│   ├── config.py          # Gestion centralisée de la config (Env vars)
-│   ├── main.py            # Point d'entrée API & Middleware CORS
-│   └── schemas.py         # Modèles de données partagés (Frontend <-> Backend)
-├── requirements.txt       # Dépendances
-└── .env                   # Variables d'environnement (non versionné)
+│ ├── app.py # FastAPI routes
+│ ├── agent/
+│ │ └── graph.py # LangGraph agent definition
+│ ├── llm.py # LLM instantiation (Vertex AI)
+│ ├── extractors.py # Context compaction & JSON parsing
+│ ├── suggestions.py # Rule-based suggestions
+│ ├── schemas.py # Pydantic models
+│ └── config.py # Environment-based configuration
+├── main.py # Uvicorn entrypoint
+├── requirements.txt
+└── README.md
+
+---
+
+## Agent Architecture (LangGraph)
+
+The AI agent is implemented as a **state graph**, not a linear chain.
+
+### Agent States
+
+```python
+AgentState = {
+  messages: conversation history,
+  context: page context,
+  suggestions: proactive prompts,
+  final_response: assistant answer
+}
 ```
 
-## 🚀 Installation & Démarrage
+### Routing Logic
 
-### 1. Configuration
-Créez un fichier `.env` à la racine de `backend/` :
+- If no user message → proactive_analysis
+- If user message exists → chatbot
 
-```ini
-GOOGLE_APPLICATION_CREDENTIALS="path/to/your-gcp-key.json"
-GCP_PROJECT_ID="votre-projet-id"
-GCP_LOCATION="europe-west1"
+This clean separation allows independent evolution of proactive and reactive behaviors.
 
-LANGFUSE_PUBLIC_KEY="pk-lf-..."
-LANGFUSE_SECRET_KEY="sk-lf-..."
-LANGFUSE_BASE_URL="https://cloud.langfuse.com"
-```
+### Anti-Hallucination Strategy
 
-### 2. Installation des dépendances
+- Page context injected into system prompt
+- Explicit instruction to not infer missing information
+- No external browsing
+- No persistent memory
+
+This ensures responses remain grounded in visible data only.
+
+### Observability
+
+Langfuse is used to trace:
+
+- LLM calls
+- latency per node
+- token usage
+- errors and fallbacks
+
+### Running locally
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # ou venv\Scripts\activate sur Windows
-pip install -r requirements.txt
-```
-
-### 3. Lancer le serveur
-
-```bash
+cd backend
 python main.py
 ```
-
-L'API sera accessible sur `http://localhost:8000`.
-La documentation interactive (Swagger UI) est disponible sur `http://localhost:8000/docs`.
