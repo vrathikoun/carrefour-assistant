@@ -13,7 +13,7 @@ The project is divided into two main parts:
 
 ## Technical Stack
 
-- **LLM** : Google Gemini Pro (via Vertex AI)
+- **LLM** : Google Gemini Flash
 - **Orchestration** : LangChain
 - **Observability** : Langfuse (Tracing & Monitoring)
 - **Backend** : Python / FastAPI
