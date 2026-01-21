@@ -27,10 +27,9 @@ langfuse_client = Langfuse()
 
 app = FastAPI(title="Carrefour AI Assistant Backend")
 
-# CORS: OK pour démo. En prod, restreindre à l'ID extension.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"chrome-extension://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
