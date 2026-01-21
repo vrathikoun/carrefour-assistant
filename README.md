@@ -48,7 +48,7 @@ LANGFUSE_BASE_URL=https://cloud.langfuse.com
 Launch the server:
 ```bash
 cd backend
-python main.py
+python main_local.py
 ```
 
 Download the extension/ folder in your local, manage your Google Chrome extensions, load the unpacked extension.
