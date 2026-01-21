@@ -12,6 +12,12 @@ def compact_context(ctx: PageContext, max_products: int = 8) -> str:
     if ctx.product:
         lines.append(f"Produit: {ctx.product.title} | Prix: {ctx.product.price}")
 
+    if ctx.recommended_products:
+        lines.append("Produits recommandés / similaires:")
+        for i, p in enumerate(ctx.recommended_products[:max_products], start=1):
+            url_part = f" | {p.url}" if getattr(p, "url", None) else ""
+            lines.append(f"- {i}. {p.title} | {p.price}{url_part}")
+
     if ctx.products:
         lines.append("Produits visibles:")
         for i, p in enumerate(ctx.products[:max_products], start=1):
