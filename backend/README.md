@@ -17,21 +17,23 @@ This folder contains the **FastAPI backend** responsible for:
 
 ---
 
-## Folder Structure
+## Project Structure
 
+~~~
 backend/
 ├── app/
-│ ├── app.py # FastAPI routes
-│ ├── agent/
-│ │ └── graph.py # LangGraph agent definition
-│ ├── llm.py # LLM instantiation (Vertex AI)
-│ ├── extractors.py # Context compaction & JSON parsing
-│ ├── suggestions.py # Rule-based suggestions
-│ ├── schemas.py # Pydantic models
-│ └── config.py # Environment-based configuration
-├── main.py # Uvicorn entrypoint
-├── requirements.txt
-└── README.md
+│   ├── app.py            # FastAPI routes (API layer)
+│   ├── agent/
+│   │   └── graph.py      # LangGraph agent definition (reasoning & routing)
+│   ├── llm.py            # LLM instantiation (Vertex AI / Gemini)
+│   ├── extractors.py     # Context compaction & robust JSON parsing
+│   ├── suggestions.py   # Rule-based proactive suggestions
+│   ├── schemas.py       # Pydantic data models
+│   └── config.py        # Environment-based configuration
+├── main.py               # Uvicorn entrypoint
+├── requirements.txt      # Python dependencies
+└── README.md             # Backend documentation
+~~~
 
 ---
 
