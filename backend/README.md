@@ -17,7 +17,7 @@ This folder contains the **FastAPI backend** responsible for:
 
 ---
 
-## 🗂 Folder Structure
+## Folder Structure
 
 backend/
 ├── app/
@@ -79,5 +79,5 @@ Langfuse is used to trace:
 
 ```bash
 cd backend
-python main.py
+python main_local.py
 ```

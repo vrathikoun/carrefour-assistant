@@ -62,5 +62,6 @@ Download the extension/ folder in your local, manage your Google Chrome extensio
 3. Change the URL in extension/manifest.json and extension/src/background.js
 
 ```bash
+cd backend
 gcloud run deploy carrefour-assistant-api   --source .   --region region   --allow-unauthenticated   --port 8080   --service-account service_account   --set-env-vars GCP_PROJECT_ID=project , GCP_LOCATION=zone , LLM_MODEL=model
 ```
