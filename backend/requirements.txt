@@ -5,3 +5,8 @@ langchain-google-vertexai
 langfuse
 python-dotenv
 pydantic-settings
+langchain-google-genai
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-cloud-aiplatform
