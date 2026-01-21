@@ -1,6 +1,6 @@
 from functools import lru_cache
 from typing import List, Optional
-
+import os
 from pydantic import Field
 from pydantic_settings import BaseSettings
 
@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     # --- App ---
     APP_ENV: str = "development"  # development | production
     HOST: str = "0.0.0.0"
-    PORT: int = 8000
-    RELOAD: bool = True
+    PORT: int = Field(default_factory=lambda: int(os.getenv("PORT", "8080")))
+    RELOAD: bool = False
 
     # CORS
     CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["*"])
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     GCP_LOCATION: str = "europe-west1"
 
     # --- LLM ---
-    LLM_MODEL: str = "gemini-1.5-pro"
+    LLM_MODEL: str = "gemini-2.5-flash"
     LLM_MAX_OUTPUT_TOKENS: int = 1024
     LLM_TEMPERATURE: float = 0.2
     LLM_CONVERT_SYSTEM_MESSAGE_TO_HUMAN: bool = True
